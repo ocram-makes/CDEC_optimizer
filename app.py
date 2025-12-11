@@ -1,6 +1,6 @@
 """
 ╔════════════════════════════════════════════════════════════════════════════════════════════════════╗
-║                      PORTFOLIO OPTIMIZER - STREAMLIT WEB APP v1.0                                  ║
+║                      PORTFOLIO OPTIMIZER - STREAMLIT WEB APP v1.1                                  ║
 ║                                                                                                    ║
 ║  Sistema professionale di ottimizzazione del portafoglio con 4 strategie quantitative,            ║
 ║  metriche di performance avanzate e visualizzazioni interattive.                                   ║
@@ -969,7 +969,8 @@ class PortfolioOptimizer:
         ax.set_xlabel('Volatilità Annualizzata (%)', color='white', fontsize=12)
         ax.set_ylabel('Rendimento Annualizzato (%)', color='white', fontsize=12)
         ax.set_title('FRONTIERA EFFICIENTE', color='#00d4ff', fontsize=14, fontweight='bold')
-        ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='white')
+        ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='white',
+                 loc='upper left', bbox_to_anchor=(0.02, 0.98), fontsize=10)
         ax.tick_params(colors='white')
         ax.grid(True, alpha=0.3, color='#334155')
         
@@ -1009,7 +1010,8 @@ class PortfolioOptimizer:
         ax.set_xlabel('Data', color='white', fontsize=12)
         ax.set_ylabel('Valore Portafoglio (Base 100€)', color='white', fontsize=12)
         ax.set_title('RENDIMENTI CUMULATIVI', color='#00d4ff', fontsize=14, fontweight='bold')
-        ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='white')
+        ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='white',
+                 loc='upper left', bbox_to_anchor=(0.02, 0.98), fontsize=10)
         ax.tick_params(colors='white')
         ax.grid(True, alpha=0.3, color='#334155')
         
@@ -1043,7 +1045,8 @@ class PortfolioOptimizer:
         ax.set_xlabel('Data', color='white', fontsize=12)
         ax.set_ylabel('Drawdown (%)', color='white', fontsize=12)
         ax.set_title('DRAWDOWN NEL TEMPO', color='#00d4ff', fontsize=14, fontweight='bold')
-        ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='white')
+        ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='white',
+                 loc='lower left', bbox_to_anchor=(0.02, 0.02), fontsize=10)
         ax.tick_params(colors='white')
         ax.grid(True, alpha=0.3, color='#334155')
         
@@ -1135,7 +1138,8 @@ class PortfolioOptimizer:
         ax.set_xlabel('Volatilità Annualizzata (%)', color='white', fontsize=12)
         ax.set_ylabel('Rendimento Annualizzato (%)', color='white', fontsize=12)
         ax.set_title('MAPPA RISK-RETURN', color='#00d4ff', fontsize=14, fontweight='bold')
-        ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='white', loc='upper left')
+        ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='white', 
+                 loc='upper left', bbox_to_anchor=(0.02, 0.98), fontsize=10)
         ax.tick_params(colors='white')
         ax.grid(True, alpha=0.3, color='#334155')
         ax.axhline(0, color='gray', linestyle='-', alpha=0.3)
@@ -1277,7 +1281,10 @@ def main():
             "Inserisci i ticker (uno per riga)",
             value=DEFAULT_TICKERS,
             height=200,
-            help="Inserisci i simboli degli ETF, uno per riga. Es: SPY, QQQ, VTI"
+            help="Inserisci i simboli degli ETF Yahoo Finance, uno per riga. "
+                 "Il sistema proverà automaticamente suffissi europei (.L, .DE, .MI) "
+                 "se il ticker base non viene trovato. Servono almeno 2 ETF con "
+                 "minimo 50 giorni di dati storici."
         )
         
         st.markdown("---")
@@ -1290,14 +1297,20 @@ def main():
                 "Data Inizio",
                 value=datetime(2022, 1, 1),
                 min_value=datetime(2010, 1, 1),
-                max_value=datetime.today() - timedelta(days=365)
+                max_value=datetime.today() - timedelta(days=365),
+                help="Data di inizio per il download dei dati storici. "
+                     "I dati vengono convertiti in frequenza SETTIMANALE per ridurre "
+                     "il rumore dei movimenti giornalieri e allinearsi con l'orizzonte "
+                     "tipico di ribilanciamento."
             )
         with col2:
             end_date = st.date_input(
                 "Data Fine",
                 value=datetime.today(),
                 min_value=start_date + timedelta(days=365),
-                max_value=datetime.today()
+                max_value=datetime.today(),
+                help="Data di fine analisi. Di default è la data odierna. "
+                     "Serve almeno 1 anno di dati per calcoli statistici affidabili."
             )
         
         st.markdown("---")
@@ -1311,7 +1324,10 @@ def main():
             max_value=10.0,
             value=3.7,
             step=0.1,
-            help="Tasso risk-free annuale (es. rendimento BOT o Treasury)"
+            help="Tasso risk-free annuale per il calcolo di Sharpe e Sortino Ratio. "
+                 "Rappresenta il rendimento di un investimento 'senza rischio' come "
+                 "BOT o Treasury Bills. Il premio al rischio (Excess Return) è calcolato "
+                 "come: Rendimento_portafoglio - Risk_free_rate."
         ) / 100
         
         col1, col2 = st.columns(2)
@@ -1321,7 +1337,10 @@ def main():
                 min_value=0.0,
                 max_value=10.0,
                 value=1.0,
-                step=0.5
+                step=0.5,
+                help="Peso MINIMO per ogni asset nel portafoglio. "
+                     "Evita posizioni troppo piccole che sarebbero costose da gestire "
+                     "e poco significative. Valore consigliato: 1-2%."
             ) / 100
         with col2:
             max_weight = st.number_input(
@@ -1329,7 +1348,10 @@ def main():
                 min_value=10.0,
                 max_value=100.0,
                 value=25.0,
-                step=5.0
+                step=5.0,
+                help="Peso MASSIMO per ogni singolo asset. "
+                     "Evita concentrazione eccessiva su un singolo ETF, "
+                     "forzando diversificazione. Valore consigliato: 20-30%."
             ) / 100
         
         st.markdown("---")
@@ -1339,13 +1361,23 @@ def main():
         use_sector_constraints = st.checkbox(
             "Attiva Vincoli Settoriali",
             value=True,
-            help="Limita l'esposizione massima per settore"
+            help="La concentrazione settoriale è uno dei rischi più sottovalutati. "
+                 "Un portafoglio 'diversificato' con 10 ETF tutti tech non è realmente "
+                 "diversificato - se il settore tech crolla, crolla tutto. "
+                 "I vincoli settoriali forzano una vera diversificazione tra settori."
         )
         
         sector_limits = None
         if use_sector_constraints:
             with st.expander("📋 Configura Limiti Settoriali", expanded=False):
-                st.markdown("*Limiti massimi per settore (%)*")
+                st.markdown("""
+                *Peso MASSIMO consentito per ogni settore.*
+                
+                **Come scegliere i limiti?**
+                - Settori volatili (Semiconductor, EmergingTech): 20-25%
+                - Settori stabili/ampi (Technology broad, NASDAQ): 30-35%
+                - Settori speculativi (CleanEnergy, Fintech): 15-20%
+                """)
                 sector_limits = {}
                 cols = st.columns(2)
                 for i, (sector, default_limit) in enumerate(DEFAULT_SECTOR_LIMITS.items()):
@@ -1355,7 +1387,8 @@ def main():
                             min_value=10,
                             max_value=50,
                             value=int(default_limit * 100),
-                            step=5
+                            step=5,
+                            help=f"Peso massimo per il settore {sector}"
                         ) / 100
         else:
             sector_limits = False
@@ -1367,7 +1400,9 @@ def main():
         use_vol_constraint = st.checkbox(
             "Attiva Target Volatilità",
             value=False,
-            help="Limita la volatilità massima del portafoglio"
+            help="Vincolo σ_portfolio ≤ target_volatility. Mantiene il rischio "
+                 "complessivo sotto una soglia predefinita. Utile per rispettare "
+                 "mandati di gestione o tolleranza al rischio del cliente."
         )
         
         target_volatility = None
@@ -1377,7 +1412,10 @@ def main():
                 min_value=10,
                 max_value=40,
                 value=22,
-                step=1
+                step=1,
+                help="Volatilità massima annualizzata del portafoglio. "
+                     "Riferimenti: <10% conservativo, 10-20% moderato, "
+                     "20-30% aggressivo, >30% molto aggressivo."
             ) / 100
         
         st.markdown("---")
@@ -1519,6 +1557,30 @@ def main():
             st.markdown("---")
             st.markdown("### 📊 Confronto Strategie")
             
+            # Expander con descrizioni delle strategie
+            with st.expander("ℹ️ Dettagli Strategie di Ottimizzazione", expanded=False):
+                st.markdown("""
+**MAX SHARPE (Mean-Variance di Markowitz)**
+- **Obiettivo:** Massimizzare `(Rendimento - Risk_free) / Volatilità`
+- **Pro:** Approccio teoricamente ottimale (Premio Nobel 1990), massimizza l'efficienza
+- **Contro:** Sensibile agli errori di stima, tende a concentrarsi su pochi asset
+
+**MAX SORTINO (Semi-Variance Optimization)**
+- **Obiettivo:** Massimizzare `(Rendimento - Risk_free) / Downside_Deviation`
+- **Pro:** Penalizza solo il rischio di ribasso, non la volatilità "buona"
+- **Contro:** Richiede più dati storici per stime accurate
+
+**RISK PARITY**
+- **Obiettivo:** Equalizzare i contributi al rischio di ogni asset
+- **Pro:** Portafoglio più bilanciato, meno sensibile agli errori di stima
+- **Contro:** Non massimizza il rendimento, può sottoperformare in bull market
+
+**HRP (Hierarchical Risk Parity)**
+- **Obiettivo:** Allocazione robusta basata su clustering gerarchico
+- **Pro:** NON richiede inversione della matrice di covarianza, robusto a errori
+- **Contro:** Non ottimizza esplicitamente rendimento o Sharpe
+                """)
+            
             # Trova la strategia migliore
             best_strategy = max(results.items(), key=lambda x: x[1]['sharpe'])
             best_name, best_data = best_strategy
@@ -1616,10 +1678,27 @@ def main():
         with tab2:
             st.markdown("### 🥧 Allocazione del Portafoglio")
             
+            with st.expander("ℹ️ Come leggere l'allocazione", expanded=False):
+                st.markdown("""
+**Grafici Donut (Pie Charts)**
+- Ogni grafico mostra la distribuzione del capitale per una strategia
+- Il centro mostra lo Sharpe Ratio della strategia
+- Gli asset con peso < 2% sono raggruppati in "Altri"
+- I primi 3 asset sono leggermente "esplosi" per evidenziare i pesi principali
+
+**Perché le allocazioni sono diverse?**
+- **Max Sharpe:** Concentra su asset con miglior rapporto rendimento/rischio
+- **Max Sortino:** Privilegia asset con bassa volatilità negativa
+- **Risk Parity:** Bilancia il contributo al rischio (non il capitale)
+- **HRP:** Usa clustering per diversificazione robusta
+                """)
+            
             # Pie charts
             fig_pie = optimizer.plot_allocation_pie()
             st.pyplot(fig_pie)
             plt.close(fig_pie)
+            st.caption("🥧 **Grafici Donut:** Distribuzione percentuale del capitale. "
+                      "Il valore al centro è lo Sharpe Ratio. Asset con peso <2% sono raggruppati in 'Altri'.")
             
             st.markdown("---")
             st.markdown("### 📋 Pesi Esatti per Strategia")
@@ -1654,6 +1733,9 @@ def main():
             if fig_frontier:
                 st.pyplot(fig_frontier)
                 plt.close(fig_frontier)
+            st.caption("📊 **Frontiera Efficiente di Markowitz:** Ogni punto rappresenta un portafoglio ottimale "
+                      "per quel livello di rischio. Il colore indica lo Sharpe Ratio (più chiaro = migliore). "
+                      "I marker colorati mostrano le 4 strategie di ottimizzazione.")
             
             st.markdown("---")
             
@@ -1662,6 +1744,9 @@ def main():
             fig_cumulative = optimizer.plot_cumulative()
             st.pyplot(fig_cumulative)
             plt.close(fig_cumulative)
+            st.caption("📈 **Evoluzione di 100€ investiti:** Mostra come sarebbe cresciuto il capitale "
+                      "nel periodo analizzato per ogni strategia. La linea tratteggiata bianca è il benchmark. "
+                      "La linea grigia orizzontale indica il valore iniziale (base 100).")
             
             st.markdown("---")
             
@@ -1670,6 +1755,9 @@ def main():
             fig_drawdown = optimizer.plot_drawdown()
             st.pyplot(fig_drawdown)
             plt.close(fig_drawdown)
+            st.caption("📉 **Drawdown nel tempo:** Rappresenta la perdita percentuale dal massimo storico. "
+                      "Un drawdown del -20% significa che il portafoglio ha perso il 20% dal suo picco. "
+                      "È la metrica più importante per valutare la tolleranza psicologica al rischio.")
             
             st.markdown("---")
             
@@ -1679,6 +1767,10 @@ def main():
             if fig_rr:
                 st.pyplot(fig_rr)
                 plt.close(fig_rr)
+            st.caption("🎯 **Risk-Return Map:** Confronto diretto tra strategie e benchmark. "
+                      "L'asse X è la volatilità (rischio), l'asse Y il rendimento. "
+                      "La linea tratteggiata è la Capital Market Line (CML) - punti sopra la linea "
+                      "indicano performance superiore al mercato su base risk-adjusted.")
             
             st.markdown("---")
             
@@ -1687,6 +1779,10 @@ def main():
             fig_corr = optimizer.plot_correlation_matrix()
             st.pyplot(fig_corr)
             plt.close(fig_corr)
+            st.caption("🔗 **Matrice di Correlazione:** Misura la relazione lineare tra i rendimenti degli asset. "
+                      "🔴 **Rosso** (+1) = si muovono insieme (nessuna diversificazione). "
+                      "⚪ **Bianco** (0) = movimenti indipendenti (buona diversificazione). "
+                      "🔵 **Blu** (-1) = si muovono in direzioni opposte (hedge naturale).")
         
         # ════════════════════════════════════════════════════════════════════════
         # TAB 4: GLOSSARIO
